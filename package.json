@@ -1,0 +1,39 @@
+{
+  "name": "ssm-backend-api",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Backend of the ssm projects",
+  "main": "./src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon --exec babel-node   --es-module-specifier-resolution=node  ./src/index.js &"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bolatahmett/ssm-backend-api.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bolatahmett/ssm-backend-api/issues"
+  },
+  "homepage": "https://github.com/bolatahmett/ssm-backend-api#readme",
+  "dependencies": {
+    "@babel/preset-env": "^7.10.2",
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "dotenv": "^12.0.3",
+    "express": "^4.17.1",
+    "firebase": "^9.6.0",
+    "lodash": "^4.17.21",
+    "nodemon": "^2.0.4",
+    "ol": "^6.9.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.10.2",
+    "@babel/node": "^7.10.1",
+    "@types/cors": "^2.8.12",
+    "@types/express": "^4.17.13",
+    "@types/lodash": "^4.14.178"
+  }
+}
