@@ -32,6 +32,7 @@ app.listen(3000, () => {
                 passengerItem.ShuttleLink = resultLink.filter(l => l.PassengerId.toString() === passengerItem.Id);
                 return passengerItem.Status !== "D";
             });
+
             getNearest(passengersWithShuttleLink);
         });
     });
@@ -43,18 +44,16 @@ let sentMessageOnTarget: string[] = [];
 
 export async function getNearest(passengersWithShuttleLink: Passenger[]) {
 
-    onChildAdded(query(ref(database, "ShuttleRoute"), limitToLast(1)), (snapshot) => {
-
+    onChildAdded(query(ref(database, "ShuttleRoute"), limitToLast(100)), (snapshot) => {
         var data: ShuttleRoute = snapshot.val();
 
-        const currentPoint = new Point([data.Latitude, data.Longitude]);
-        var poitnExtent = currentPoint.getExtent();
-        var bufferedExtentClosest = buffer(poitnExtent, 1000);
-        var bufferedExtentOnDoor = buffer(poitnExtent, 10);
+        const currentPoint = new Point(fromLonLat([data.Longitude, data.Latitude]));
 
-        const features = passengersWithShuttleLink.filter((passengerItem) => {
-            return passengerItem!.ShuttleLink!.filter((linkItem) => linkItem.ShuttleId === data.ShuttleId);
-        }).map((shuttlePassengerItem) => {
+        const shuttlePasssengers = passengersWithShuttleLink.filter((item) => {
+            return item.Status !== "D" && item.ShuttleLink?.some(sl => { return sl.ShuttleId.toString() === data.ShuttleId.toString() })
+        });
+
+        const features = shuttlePasssengers.map((shuttlePassengerItem) => {
 
             let feature = new Feature({
                 geometry: new Point(fromLonLat([shuttlePassengerItem.Latitude, shuttlePassengerItem.Longitude])),
@@ -68,15 +67,16 @@ export async function getNearest(passengersWithShuttleLink: Passenger[]) {
 
         const vectorSource = new VectorSource({ features });
 
+        var bufferedExtentClosest = buffer(currentPoint.getExtent(), 1000);
         vectorSource.forEachFeatureIntersectingExtent(bufferedExtentClosest, (item: any) => {
-
             if (sentMessageTypeClosest.find((sentItem) => { if (item.getId() === sentItem) { return sentItem } }) === undefined) {
                 console.log(item.get('Info') + "bufferedExtentClosest");
-                sendMessage(1, item.get("Id"), data.ExpeditionId, data.ShuttleId)
+                sendMessage(1, item.getId(), data.ExpeditionId, data.ShuttleId)
                 sentMessageTypeClosest.push(item.getId())
             }
         });
 
+        var bufferedExtentOnDoor = buffer(currentPoint.getExtent(), 10);
         vectorSource.forEachFeatureIntersectingExtent(bufferedExtentOnDoor, (item: any) => {
             if (sentMessageOnDoor.find((sentItem) => { if (item.getId() === sentItem) { return sentItem } }) === undefined) {
                 console.log(item.get('Info') + "bufferedExtentOnDoor");
@@ -85,13 +85,13 @@ export async function getNearest(passengersWithShuttleLink: Passenger[]) {
             }
         });
 
-        const targetPoint = new Point([36.1212, 36.234242]);
+        const targetPoint = new Point(fromLonLat([36.22067765094101, 36.10080801701309]));
         var bufferedExtentTarget = buffer(currentPoint.getExtent(), 10);
 
         if (targetPoint.intersectsExtent(bufferedExtentTarget)) {
             vectorSource.forEachFeature((item: any) => {
                 if (sentMessageOnTarget.find((sentItem) => { if (item.getId() === sentItem) { return sentItem } }) === undefined) {
-                    console.log(item.get('Info') + "bufferedExtentTarget");
+                    console.log(item.get('Info') + " hedef noktaya ulaştı.");
                     sendMessage(6, item.getId(), data.ExpeditionId, data.ShuttleId)
                     sentMessageOnTarget.push(item.getId())
                 }

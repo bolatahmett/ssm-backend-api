@@ -69,15 +69,14 @@ var sentMessageOnTarget = [];
 export function getNearest(passengersWithShuttleLink) {
     return __awaiter(this, void 0, void 0, function () {
         return __generator(this, function (_a) {
-            onChildAdded(query(ref(database, "ShuttleRoute"), limitToLast(1)), function (snapshot) {
+            onChildAdded(query(ref(database, "ShuttleRoute"), limitToLast(100)), function (snapshot) {
                 var data = snapshot.val();
-                var currentPoint = new Point([data.Latitude, data.Longitude]);
-                var poitnExtent = currentPoint.getExtent();
-                var bufferedExtentClosest = buffer(poitnExtent, 1000);
-                var bufferedExtentOnDoor = buffer(poitnExtent, 10);
-                var features = passengersWithShuttleLink.filter(function (passengerItem) {
-                    return passengerItem.ShuttleLink.filter(function (linkItem) { return linkItem.ShuttleId === data.ShuttleId; });
-                }).map(function (shuttlePassengerItem) {
+                var currentPoint = new Point(fromLonLat([data.Longitude, data.Latitude]));
+                var shuttlePasssengers = passengersWithShuttleLink.filter(function (item) {
+                    var _a;
+                    return item.Status !== "D" && ((_a = item.ShuttleLink) === null || _a === void 0 ? void 0 : _a.some(function (sl) { return sl.ShuttleId.toString() === data.ShuttleId.toString(); }));
+                });
+                var features = shuttlePasssengers.map(function (shuttlePassengerItem) {
                     var feature = new Feature({
                         geometry: new Point(fromLonLat([shuttlePassengerItem.Latitude, shuttlePassengerItem.Longitude])),
                     });
@@ -87,15 +86,17 @@ export function getNearest(passengersWithShuttleLink) {
                     return feature;
                 });
                 var vectorSource = new VectorSource({ features: features });
+                var bufferedExtentClosest = buffer(currentPoint.getExtent(), 1000);
                 vectorSource.forEachFeatureIntersectingExtent(bufferedExtentClosest, function (item) {
                     if (sentMessageTypeClosest.find(function (sentItem) { if (item.getId() === sentItem) {
                         return sentItem;
                     } }) === undefined) {
                         console.log(item.get('Info') + "bufferedExtentClosest");
-                        sendMessage(1, item.get("Id"), data.ExpeditionId, data.ShuttleId);
+                        sendMessage(1, item.getId(), data.ExpeditionId, data.ShuttleId);
                         sentMessageTypeClosest.push(item.getId());
                     }
                 });
+                var bufferedExtentOnDoor = buffer(currentPoint.getExtent(), 10);
                 vectorSource.forEachFeatureIntersectingExtent(bufferedExtentOnDoor, function (item) {
                     if (sentMessageOnDoor.find(function (sentItem) { if (item.getId() === sentItem) {
                         return sentItem;
@@ -105,14 +106,14 @@ export function getNearest(passengersWithShuttleLink) {
                         sentMessageOnDoor.push(item.getId());
                     }
                 });
-                var targetPoint = new Point([36.1212, 36.234242]);
+                var targetPoint = new Point(fromLonLat([36.22067765094101, 36.10080801701309]));
                 var bufferedExtentTarget = buffer(currentPoint.getExtent(), 10);
                 if (targetPoint.intersectsExtent(bufferedExtentTarget)) {
                     vectorSource.forEachFeature(function (item) {
                         if (sentMessageOnTarget.find(function (sentItem) { if (item.getId() === sentItem) {
                             return sentItem;
                         } }) === undefined) {
-                            console.log(item.get('Info') + "bufferedExtentTarget");
+                            console.log(item.get('Info') + " hedef noktaya ulaştı.");
                             sendMessage(6, item.getId(), data.ExpeditionId, data.ShuttleId);
                             sentMessageOnTarget.push(item.getId());
                         }
