@@ -25,14 +25,14 @@ app.listen(3000, () => {
     console.log(`app is listening to port 3000`);
 
     getTableItems("Passenger").then((passengers: Passenger[]) => {
-        console.log("passengers read")
+
         getTableItems("ShuttlePassengerLink").then((resultLink: ShuttlePassengerLink[]) => {
-            console.log("ShuttlePassengerLink read")
+
             const passengersWithShuttleLink = passengers.filter((passengerItem) => {
                 passengerItem.ShuttleLink = resultLink.filter(l => l.PassengerId.toString() === passengerItem.Id);
                 return passengerItem.Status !== "D";
             });
-
+            console.log(passengersWithShuttleLink.length);
             getNearest(passengersWithShuttleLink);
         });
     });
@@ -44,7 +44,7 @@ let sentMessageOnTarget: string[] = [];
 
 export async function getNearest(passengersWithShuttleLink: Passenger[]) {
 
-    onChildAdded(query(ref(database, "ShuttleRoute"), limitToLast(100)), (snapshot) => {
+    onChildAdded(query(ref(database, "ShuttleRoute"), limitToLast(1)), (snapshot) => {
         var data: ShuttleRoute = snapshot.val();
 
         const currentPoint = new Point(fromLonLat([data.Longitude, data.Latitude]));
@@ -56,7 +56,7 @@ export async function getNearest(passengersWithShuttleLink: Passenger[]) {
         const features = shuttlePasssengers.map((shuttlePassengerItem) => {
 
             let feature = new Feature({
-                geometry: new Point(fromLonLat([shuttlePassengerItem.Latitude, shuttlePassengerItem.Longitude])),
+                geometry: new Point(fromLonLat([shuttlePassengerItem.Longitude, shuttlePassengerItem.Latitude])),
             });
             feature.setId(shuttlePassengerItem.Id);
             feature.set('Info', shuttlePassengerItem.PassengerName);
@@ -69,31 +69,31 @@ export async function getNearest(passengersWithShuttleLink: Passenger[]) {
 
         var bufferedExtentClosest = buffer(currentPoint.getExtent(), 1000);
         vectorSource.forEachFeatureIntersectingExtent(bufferedExtentClosest, (item: any) => {
-            if (sentMessageTypeClosest.find((sentItem) => { if (item.getId() === sentItem) { return sentItem } }) === undefined) {
-                console.log(item.get('Info') + "bufferedExtentClosest");
+            if (sentMessageTypeClosest.find((sentItem) => { if (`${item.getId()}-${data.ExpeditionId}` === sentItem) { return sentItem } }) === undefined) {
+                console.log(item.get('Info') + " x metre yakına geldi.");
                 sendMessage(1, item.getId(), data.ExpeditionId, data.ShuttleId)
-                sentMessageTypeClosest.push(item.getId())
+                sentMessageTypeClosest.push(`${item.getId()}-${data.ExpeditionId}`)
             }
         });
 
-        var bufferedExtentOnDoor = buffer(currentPoint.getExtent(), 10);
+        var bufferedExtentOnDoor = buffer(currentPoint.getExtent(), 100);
         vectorSource.forEachFeatureIntersectingExtent(bufferedExtentOnDoor, (item: any) => {
-            if (sentMessageOnDoor.find((sentItem) => { if (item.getId() === sentItem) { return sentItem } }) === undefined) {
-                console.log(item.get('Info') + "bufferedExtentOnDoor");
+            if (sentMessageOnDoor.find((sentItem) => { if (`${item.getId()}-${data.ExpeditionId}` === sentItem) { return sentItem } }) === undefined) {
+                console.log(item.get('Info') + "servis kapıda.");
                 sendMessage(2, item.getId(), data.ExpeditionId, data.ShuttleId)
-                sentMessageOnDoor.push(item.getId())
+                sentMessageOnDoor.push(`${item.getId()}-${data.ExpeditionId}`)
             }
         });
 
         const targetPoint = new Point(fromLonLat([36.22067765094101, 36.10080801701309]));
-        var bufferedExtentTarget = buffer(currentPoint.getExtent(), 10);
+        var bufferedExtentTarget = buffer(currentPoint.getExtent(), 100);
 
         if (targetPoint.intersectsExtent(bufferedExtentTarget)) {
             vectorSource.forEachFeature((item: any) => {
-                if (sentMessageOnTarget.find((sentItem) => { if (item.getId() === sentItem) { return sentItem } }) === undefined) {
+                if (sentMessageOnTarget.find((sentItem) => { if (`${item.getId()}-${data.ExpeditionId}` === sentItem) { return sentItem } }) === undefined) {
                     console.log(item.get('Info') + " hedef noktaya ulaştı.");
                     sendMessage(6, item.getId(), data.ExpeditionId, data.ShuttleId)
-                    sentMessageOnTarget.push(item.getId())
+                    sentMessageOnTarget.push(`${item.getId()}-${data.ExpeditionId}`)
                 }
             });
         }

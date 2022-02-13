@@ -55,7 +55,7 @@ export function getUser(nickName, password, loginType) {
                 case 0:
                     result = undefined;
                     dbRef = ref(database);
-                    return [4 /*yield*/, get(child(dbRef, "User/" + nickName)).then(function (snapshot) {
+                    return [4 /*yield*/, get(child(dbRef, "User/".concat(nickName))).then(function (snapshot) {
                             var snapshotValue = snapshot.val();
                             if (snapshotValue["Password"] == password && snapshotValue["LoginType"] == loginType) {
                                 result = snapshotValue;
@@ -76,7 +76,7 @@ export function getTableItemWithId(tableName, id) {
                 case 0:
                     result = undefined;
                     dbRef = ref(database);
-                    return [4 /*yield*/, get(child(dbRef, tableName + "/" + id)).then(function (snapshot) {
+                    return [4 /*yield*/, get(child(dbRef, "".concat(tableName, "/").concat(id))).then(function (snapshot) {
                             result = snapshot.val();
                             return result;
                         })];
@@ -93,7 +93,7 @@ export function getTableItemWithIdasync(tableName, id) {
         return __generator(this, function (_a) {
             result = undefined;
             dbRef = ref(database);
-            get(child(dbRef, tableName + "/" + id)).then(function (snapshot) {
+            get(child(dbRef, "".concat(tableName, "/").concat(id))).then(function (snapshot) {
                 result = snapshot.val();
                 return result;
             });
@@ -145,7 +145,7 @@ export function updateItemOnDb(tableName, item, key) {
                 uniqueKey = push(child(ref(database), tableName)).key;
             }
             Id = item.Id, newObj = __rest(item, ["Id"]);
-            updates["/" + tableName + "/" + uniqueKey] = newObj;
+            updates["/".concat(tableName, "/").concat(uniqueKey)] = newObj;
             return [2 /*return*/, update(ref(database), updates)];
         });
     });

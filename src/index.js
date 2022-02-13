@@ -52,13 +52,12 @@ app.get('/healthcheck', function (req, res) {
 app.listen(3000, function () {
     console.log("app is listening to port 3000");
     getTableItems("Passenger").then(function (passengers) {
-        console.log("passengers read");
         getTableItems("ShuttlePassengerLink").then(function (resultLink) {
-            console.log("ShuttlePassengerLink read");
             var passengersWithShuttleLink = passengers.filter(function (passengerItem) {
                 passengerItem.ShuttleLink = resultLink.filter(function (l) { return l.PassengerId.toString() === passengerItem.Id; });
                 return passengerItem.Status !== "D";
             });
+            console.log(passengersWithShuttleLink.length);
             getNearest(passengersWithShuttleLink);
         });
     });
@@ -69,7 +68,7 @@ var sentMessageOnTarget = [];
 export function getNearest(passengersWithShuttleLink) {
     return __awaiter(this, void 0, void 0, function () {
         return __generator(this, function (_a) {
-            onChildAdded(query(ref(database, "ShuttleRoute"), limitToLast(100)), function (snapshot) {
+            onChildAdded(query(ref(database, "ShuttleRoute"), limitToLast(1)), function (snapshot) {
                 var data = snapshot.val();
                 var currentPoint = new Point(fromLonLat([data.Longitude, data.Latitude]));
                 var shuttlePasssengers = passengersWithShuttleLink.filter(function (item) {
@@ -78,7 +77,7 @@ export function getNearest(passengersWithShuttleLink) {
                 });
                 var features = shuttlePasssengers.map(function (shuttlePassengerItem) {
                     var feature = new Feature({
-                        geometry: new Point(fromLonLat([shuttlePassengerItem.Latitude, shuttlePassengerItem.Longitude])),
+                        geometry: new Point(fromLonLat([shuttlePassengerItem.Longitude, shuttlePassengerItem.Latitude])),
                     });
                     feature.setId(shuttlePassengerItem.Id);
                     feature.set('Info', shuttlePassengerItem.PassengerName);
@@ -88,34 +87,34 @@ export function getNearest(passengersWithShuttleLink) {
                 var vectorSource = new VectorSource({ features: features });
                 var bufferedExtentClosest = buffer(currentPoint.getExtent(), 1000);
                 vectorSource.forEachFeatureIntersectingExtent(bufferedExtentClosest, function (item) {
-                    if (sentMessageTypeClosest.find(function (sentItem) { if (item.getId() === sentItem) {
+                    if (sentMessageTypeClosest.find(function (sentItem) { if ("".concat(item.getId(), "-").concat(data.ExpeditionId) === sentItem) {
                         return sentItem;
                     } }) === undefined) {
-                        console.log(item.get('Info') + "bufferedExtentClosest");
+                        console.log(item.get('Info') + " x metre yakına geldi.");
                         sendMessage(1, item.getId(), data.ExpeditionId, data.ShuttleId);
-                        sentMessageTypeClosest.push(item.getId());
+                        sentMessageTypeClosest.push("".concat(item.getId(), "-").concat(data.ExpeditionId));
                     }
                 });
-                var bufferedExtentOnDoor = buffer(currentPoint.getExtent(), 10);
+                var bufferedExtentOnDoor = buffer(currentPoint.getExtent(), 100);
                 vectorSource.forEachFeatureIntersectingExtent(bufferedExtentOnDoor, function (item) {
-                    if (sentMessageOnDoor.find(function (sentItem) { if (item.getId() === sentItem) {
+                    if (sentMessageOnDoor.find(function (sentItem) { if ("".concat(item.getId(), "-").concat(data.ExpeditionId) === sentItem) {
                         return sentItem;
                     } }) === undefined) {
-                        console.log(item.get('Info') + "bufferedExtentOnDoor");
+                        console.log(item.get('Info') + "servis kapıda.");
                         sendMessage(2, item.getId(), data.ExpeditionId, data.ShuttleId);
-                        sentMessageOnDoor.push(item.getId());
+                        sentMessageOnDoor.push("".concat(item.getId(), "-").concat(data.ExpeditionId));
                     }
                 });
                 var targetPoint = new Point(fromLonLat([36.22067765094101, 36.10080801701309]));
-                var bufferedExtentTarget = buffer(currentPoint.getExtent(), 10);
+                var bufferedExtentTarget = buffer(currentPoint.getExtent(), 100);
                 if (targetPoint.intersectsExtent(bufferedExtentTarget)) {
                     vectorSource.forEachFeature(function (item) {
-                        if (sentMessageOnTarget.find(function (sentItem) { if (item.getId() === sentItem) {
+                        if (sentMessageOnTarget.find(function (sentItem) { if ("".concat(item.getId(), "-").concat(data.ExpeditionId) === sentItem) {
                             return sentItem;
                         } }) === undefined) {
                             console.log(item.get('Info') + " hedef noktaya ulaştı.");
                             sendMessage(6, item.getId(), data.ExpeditionId, data.ShuttleId);
-                            sentMessageOnTarget.push(item.getId());
+                            sentMessageOnTarget.push("".concat(item.getId(), "-").concat(data.ExpeditionId));
                         }
                     });
                 }
